@@ -1,0 +1,47 @@
+{
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+  "[latex]": {
+    "editor.wordWrap": "on",
+    "editor.tabSize": 2,
+    "editor.minimap.enabled": false
+  },
+  "latex-workshop.latex.autoBuild.run": "onFileChange",
+  "latex-workshop.latex.autoBuild.interval": 1000,
+  "latex-workshop.latex.autoBuild.cleanAndRetry.enabled": false,
+  "latex-workshop.linting.chktex.enabled": false,
+  "latex.linter.enabled": false,
+  "latex-workshop.latex.outDir": "%DIR%/build",
+  "latex-workshop.latex.recipe.default": "first",
+  "latex-workshop.latex.recipes": [
+    {
+      "name": "CVPR (pdfLaTeX + BibTeX)",
+      "tools": ["cvpr-build"]
+    }
+  ],
+  "latex-workshop.latex.tools": [
+    {
+      "name": "cvpr-build",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "%DIR%/.vscode/build.ps1",
+        "-Document",
+        "%DOC_EXT%"
+      ]
+    }
+  ],
+  "latex-workshop.view.pdf.viewer": "tab",
+  "latex-workshop.view.pdf.tab.editorGroup": "right",
+  "latex-workshop.view.pdf.zoom": "page-width",
+  "latex-workshop.view.pdf.internal.synctex.keybinding": "ctrl-click",
+  "files.exclude": {
+    "build": false,
+    "build/*.{aux,bbl,blg,brf,fdb_latexmk,fls,log,out,synctex.gz,toc}": true,
+    "cvpr.sty": true,
+    "ieeenat_fullname.bst": true
+  }
+}

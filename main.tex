@@ -1,0 +1,53 @@
+\documentclass[10pt,twocolumn,letterpaper]{article}
+\usepackage[review]{cvpr}
+\definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
+\usepackage[pagebackref,breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
+\usepackage{float}
+
+\def\paperID{00000}
+\def\confName{CVPR}
+\def\confYear{2026}
+
+\title{GlobalPuzzle: Jigsaw Puzzle Reassembly via Global Canvas Evaluation, Position Querying, and Genetic Search}
+\author{Author Name\\Institution\\{\tt\small email@example.com}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Jigsaw puzzle solving remains a challenging task, even for advanced AI agents such as Claude and Codex. Traditional approaches typically estimate directional pairwise compatibility between puzzle pieces using neural networks, and subsequently employ greedy algorithms, linear programming, or genetic algorithms to maximize the overall compatibility score. Consequently, both placement decisions and solution evaluation rely heavily on local boundary information, largely overlooking the role of global visual context in determining whether two pieces should be adjacent. This limitation becomes particularly pronounced on the GAP benchmark, which simulates damaged artifacts through irregular boundary erosion, where existing methods often exhibit poor reconstruction accuracy. To address this challenge, we propose "GlobalPuzzle", a jigsaw puzzle reassembly framework that integrates global canvas evaluation, position querying, and genetic search. Rather than relying solely on pairwise boundary compatibility, GlobalPuzzle leverages global visual information to evaluate candidate assemblies and guide piece placement. By incorporating global context into both evaluation and search, our approach aims to overcome the ambiguity of local boundary matching, particularly when irregularly eroded edges make it difficult to determine whether two puzzle pieces belong together.
+\end{abstract}
+
+\section{Introduction}
+
+Jigsaw puzzle reassembly with missing visual information aims to reconstruct a coherent image by arranging an unordered set of puzzle pieces with irregularly eroded boundaries into their correct positions. This task presents two major challenges. 
+First, the combinatorial search space grows factorially with the number of pieces. For an $N \times N$ puzzle, there are $(N^2)!$ possible arrangements, of which only one corresponds to the ground-truth solution. For instance, when $N=5$, the probability of obtaining the correct arrangement through uniform random permutation is merely $1/25! \approx 6.44695 \times 10^{-26}$.
+Second, irregular erosion along piece boundaries disrupts local visual continuity, making it difficult to determine whether two pieces should be adjacent based solely on boundary information. Furthermore, as an image is divided into an increasing number of pieces, each piece contains less visual information, making it increasingly challenging to infer its absolute position or its spatial relationships with other pieces. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{pic/Teaser.png}
+    \caption{
+       Fragment reconstruction: the top left shows irregular pieces in random order, the top right shows the complete image after placing the pieces correctly and using LAMA to fill in the gaps, and the bottom left shows the process in GlobalPuzzle of forming a position query for a current state and retrieving pieces.
+    }
+    \label{fig:agent_comparison}
+\end{figure}
+
+The difficulty of this task can especially be seen in even advanced general-purpose AI systems, strong enough to generalize and solve many puzzles, such as Claude Sonnet 5.5 (medium reasoning effort) and the Codex coding agent, struggle with this task. In our preliminary evaluation on the GAP benchmark, solving a single $3 \times 3$ puzzle requires approximately 10 minutes on average, while reconstructing $5 \times 5$ puzzles remains considerably more challenging, with very low success rates
+
+
+
+\section{Related Work}
+
+\section{Method}
+
+\section{Experiments}
+
+\section{Conclusion}
+
+{\small
+\bibliographystyle{ieeenat_fullname}
+\bibliography{references}
+}
+
+\end{document}

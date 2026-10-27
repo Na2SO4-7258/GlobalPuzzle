@@ -97,7 +97,7 @@ Given $M=N^2$ unordered image fragments $\mathcal{P}=\{I_i\}_{i=1}^{M}$, we seek
 The framework combines a global evaluation network $A_\theta$, a canvas conditioned placement policy $B_\phi$, and genetic search. The policy proposes placements, genetic operations preserve and rearrange fragment groups, and the evaluator selects promising complete assemblies.
 
 Before assembly, we independently apply LaMa to each eroded puzzle piece without access to the ground-truth arrangement or complete image. This provides dense RGB inputs for subsequent processing but does not guarantee pixel or boundary continuity between adjacent pieces.
-\subsection{Global Canvas Evaluation Network}
+\subsection{Evaluation Network}
 \label{sec:global-eval}
 
 \textbf{Architecture.}
@@ -130,7 +130,7 @@ Regression targets are $\operatorname{logit}(\operatorname{clip}(Q,0.01,0.99))$.
 \end{equation}
 with larger weights for greater quality differences and structural negatives. The hard negative term penalizes the most overestimated incorrect candidate relative to the correct assembly.
 
-\subsection{Canvas Aware Placement Policy}
+\subsection{Policy Network}
 \label{sec:placement-policy}
 
 The policy encodes all fragments into tokens $c_i$ and extracts a query $q_p$ for each grid position from the partial RGB canvas and its occupancy map. A joint Transformer updates both token sets. The resulting pairwise scores are

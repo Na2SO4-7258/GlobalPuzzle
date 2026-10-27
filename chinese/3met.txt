@@ -1,0 +1,75 @@
+3. Method
+3.1. Framework Overview（整体框架）
+这一节介绍整个方法，而不深入网络结构。
+
+建议讲：
+- 问题定义：输入 N² 个无序碎片，输出完整的 N×N 排列。
+- 整体流程：BC 生成候选拼图，A 对完整画布评分，GA 不断优化候选解。
+- 三个组件如何协同工作，以及为什么需要它们。
+这里放论文最重要的一张 Framework Figure，展示数据如何在 BC、A、GA 之间流动。
+3.2. Global Canvas Evaluation Network（全局画布评估网络）
+这是你论文最值得重点讲的部分。
+
+核心思想：不是判断两个碎片是否匹配，而是直接评价整个拼图排列的质量。
+
+建议分成三个内容：
+
+Network Architecture
+
+介绍输入是已经拼接好的完整画布，而不是独立碎片；通过 CNN 提取视觉特征，再用 Transformer 建模全局空间关系，最后预测一个标量 Fitness。
+
+Quality Supervision
+
+介绍训练标签。以你目前的定义：
+
+Q = 0.6 × AA + 0.4 × SRA
+
+解释为什么要同时考虑绝对位置准确度和相对结构准确度，以及怎样生成不同质量的训练样本。
+
+Training Objective
+
+介绍连续回归损失、排序损失以及困难负样本训练。这里可以说明结构性扰动样本的构造方式。
+3.3. Canvas-Aware Placement Policy（画布感知位置预测策略）
+这一节讲 BC 网络。
+
+核心思想：利用当前已知的画布结构，预测剩余碎片与空缺位置之间的匹配关系。
+
+主要介绍：
+
+Input Representation
+
+碎片特征、当前画布、待填位置 Query，以及已使用碎片的 Mask。
+
+Placement Prediction
+
+网络如何计算碎片与位置之间的匹配分数，并且一次前向传播预测所有待填位置的候选碎片。
+
+Policy Training
+
+训练时如何构造部分拼图状态，以及如何通过正确碎片的位置监督训练 BC。
+
+这部分不需要写得比 A 更长，因为 BC 在整体方法里主要承担候选解生成和补全的作用。
+3.4. Genetic Search with Global Fitness（全局适应度引导的遗传搜索）
+这是另外一个重点，也是整个方法与传统直接预测模型的主要区别之一。
+
+建议按实际执行顺序介绍：
+
+Population Initialization
+
+使用 BC 生成初始候选解，构造初始种群。
+
+Fitness-Based Selection
+
+通过 A 网络评价候选拼图，选择优秀个体参与后续搜索。
+
+Structure-Preserving Crossover
+
+解释父代的绝对位置继承、相对连接关系继承，以及为什么要尽量保留有价值的碎片组合。
+
+Policy-Guided Completion
+
+对没有确定的碎片位置，通过 BC 预测匹配关系，并完成子代构造。这里按照你目前的实现，说明 BC 查询与相对关系检查的执行顺序。
+
+Mutation and Population Diversity
+
+介绍变异、种群去重和随机移民等操作，解释如何避免过早收敛。

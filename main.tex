@@ -3,6 +3,7 @@
 \definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
 \usepackage[pagebackref,breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
 \usepackage{float}
+\usepackage{booktabs}
 
 \def\paperID{00000}
 \def\confName{CVPR}
@@ -16,8 +17,6 @@
 
 \begin{abstract}
 Jigsaw puzzle reassembly remains a highly challenging task, particularly when piece boundaries are irregularly eroded to simulate damage to cultural artifacts. On the GAP benchmark, existing methods achieve a perfect assembly accuracy of only 0.3\% on 5*5 puzzles, whereas humans can solve jigsaw puzzles with remarkably high accuracy. Humans typically approach puzzle solving by identifying potentially adjacent pieces, evaluating the current assembly, and iteratively performing complex operations such as adding pieces, replacing incorrectly placed pieces, and moving entire connected groups of pieces. However, existing methods face a fundamental limitation: approaches that leverage global visual information typically predict piece arrangements directly, making it difficult to explicitly perform such complex iterative operations, while search based methods can rearrange pieces but primarily rely on pairwise boundary compatibility, lacking global visual information to evaluate and guide the search process.
-
-\noindent
 To bridge this gap, we propose GlobalPuzzle, a jigsaw puzzle reassembly framework that integrates global canvas level evaluation, action guidance, and genetic search. By incorporating global visual information into the evaluation and optimization of candidate assemblies, GlobalPuzzle aims to resolve ambiguous adjacency relationships that are difficult to determine from irregularly eroded piece boundaries alone, enabling more flexible and globally informed puzzle reconstruction.
 \end{abstract}
 
@@ -28,7 +27,7 @@ An $N \times N$ puzzle has $(N^2)!$ possible arrangements, making the probabilit
 Boundary erosion disrupts visual continuity, while smaller pieces provide less information for determining their positions and adjacency relationships.
 Even advanced AI agents such as Claude Sonnet 5.5 Medium and Codex require approximately 10 minutes on average to solve a $3 \times 3$ GAP puzzle and rarely reconstruct $5 \times 5$ puzzles correctly.
 
-\begin{figure}[H]
+\begin{figure}[t]
     \centering
     \includegraphics[width=\linewidth]{pic/Teaser.png}
     \caption{
@@ -72,7 +71,142 @@ Although these methods can explore different puzzle configurations through combi
 
 \section{Method}
 
+\subsection{Framework Overview}
+\label{sec:overview}
+
+Given $M=N^2$ unordered image fragments $\mathcal{P}=\{I_i\}_{i=1}^{M}$, we seek a permutation $\pi$ assigning one fragment to each position of an $N\times N$ grid. Let $C(\pi)$ denote the resulting RGB canvas. GlobalPuzzle searches for the assembly maximizing a learned quality function:
+\begin{equation}
+    \hat\pi=\arg\max_{\pi\in\mathfrak{S}_M}F_\theta(\pi),\qquad
+    F_\theta(\pi)=\sigma\bigl(A_\theta(C(\pi))\bigr).
+    \label{eq:gp-objective}
+\end{equation}
+The framework combines a global evaluation network $A_\theta$, a canvas conditioned placement policy $B_\phi$, and genetic search. The policy proposes placements, genetic operations preserve and rearrange fragment groups, and the evaluator selects promising complete assemblies.
+
+Before assembly, we independently apply LaMa to each eroded puzzle piece without access to the ground-truth arrangement or complete image. This provides dense RGB inputs for subsequent processing but does not guarantee pixel or boundary continuity between adjacent pieces.
+\subsection{Global Canvas Evaluation Network}
+\label{sec:global-eval}
+
+\textbf{Architecture.}
+The evaluator processes the resulting complete canvas using a multiscale CNN followed by a Transformer. Features pooled to the puzzle grid retain spatial organization, while a global token and spatial readout provide complementary representations. The network outputs a quality logit $z_\theta=A_\theta(C(\pi))$ and a fitness score $\hat Q(\pi)=\sigma(z_\theta)$. An auxiliary head estimates absolute accuracy during training.
+The evaluator processes a complete canvas using a multiscale CNN followed by a Transformer. Features pooled to the puzzle grid retain spatial organization, while a global token and spatial readout provide complementary representations. The network outputs a quality logit $z_\theta=A_\theta(C(\pi))$ and a fitness score $\hat Q(\pi)=\sigma(z_\theta)$. An auxiliary head estimates absolute accuracy during training.
+\noindent
+\textbf{Quality supervision.}
+Let $\pi^*$ be the ground truth, $r_\pi(i)$ the grid coordinate of fragment $i$, and $\mathcal E^*$ the set of $2N(N-1)$ oriented ground truth adjacencies $(i,j,\delta)$. We define
+\begin{align}
+\mathrm{AA}(\pi)&=\frac1M\sum_{p=1}^{M}\mathbf1[\pi(p)=\pi^*(p)],\label{eq:gp-aa}\\
+\mathrm{SRA}(\pi)&=\frac1{|\mathcal E^*|}\sum_{(i,j,\delta)\in\mathcal E^*}
+\mathbf1[r_\pi(j)-r_\pi(i)=\delta],\label{eq:gp-sra}\\
+Q(\pi)&=0.6\,\mathrm{AA}(\pi)+0.4\,\mathrm{SRA}(\pi).
+\label{eq:gp-quality}
+\end{align}
+We generate training assemblies with controlled displacement counts and structural transformations, including block exchanges, row and column shifts, and mixed mutations.
+\noindent
+\textbf{Training objective.}
+The evaluator is trained with logit regression, score calibration, within puzzle ranking, hard negative mining, and auxiliary AA regression:
+\begin{equation}
+\mathcal L_A=\mathcal L_{\rm reg}+0.5\mathcal L_{\rm cal}
++0.75\mathcal L_{\rm rank}+0.5\mathcal L_{\rm hard}
++0.2\mathcal L_{\rm AA}.
+\label{eq:gp-a-loss}
+\end{equation}
+Regression targets are $\operatorname{logit}(\operatorname{clip}(Q,0.01,0.99))$. For candidates $i,j$ of the same puzzle with $Q_i>Q_j$, the ranking term penalizes
+\begin{equation}
+\ell_{ij}=\operatorname{softplus}\bigl(3(Q_i-Q_j)-z_i+z_j\bigr),
+\label{eq:gp-rank}
+\end{equation}
+with larger weights for greater quality differences and structural negatives. The hard negative term penalizes the most overestimated incorrect candidate relative to the correct assembly.
+
+\subsection{Canvas Aware Placement Policy}
+\label{sec:placement-policy}
+
+The policy encodes all fragments into tokens $c_i$ and extracts a query $q_p$ for each grid position from the partial RGB canvas and its occupancy map. A joint Transformer updates both token sets. The resulting pairwise scores are
+\begin{equation}
+S_{p,i}=\tau\,
+\frac{\langle W_q\tilde q_p,W_c\tilde c_i\rangle}
+{\|W_q\tilde q_p\|_2\,\|W_c\tilde c_i\|_2},
+\label{eq:gp-policy}
+\end{equation}
+where $\tau$ is learned. One forward pass produces an $M\times M$ position to fragment score matrix.
+
+Training uses correct and perturbed partial canvases. When all occupied fragments are correctly placed, empty positions receive one hot ground truth targets. Otherwise, occupied neighbors vote for fragments that preserve their ground truth directional relationships. Normalized vote counts define targets $t_{p,i}$, and the policy minimizes
+\begin{equation}
+\mathcal L_B=-\frac1{|\mathcal Q|}\sum_{p\in\mathcal Q}\sum_{i=1}^{M}
+ t_{p,i}\log\operatorname{softmax}(S_{p,:})_i,
+\label{eq:gp-b-loss}
+\end{equation}
+where $\mathcal Q$ contains supervised empty positions. During search, occupied positions and used fragments are masked. Fragment embeddings are cached for reuse across candidates.
+
+\subsection{Genetic Search with Global Fitness}
+\label{sec:ga}
+\noindent
+\textbf{Initialization and selection.}
+The policy generates an initial population of complete permutations. Each is evaluated by $F_\theta$. The strongest individuals are retained as elites, while parents are sampled with fitness weighted probabilities
+\begin{equation}
+P(\pi_k)=\frac{(F_\theta(\pi_k)+\epsilon)^\beta}
+{\sum_j(F_\theta(\pi_j)+\epsilon)^\beta}.
+\label{eq:gp-selection}
+\end{equation}
+\noindent
+\textbf{Structural crossover.}
+Given parents $\pi^a$ and $\pi^b$, identical absolute placements are copied into the offspring:
+\begin{equation}
+s_p=\pi^a(p)\quad\text{if }\pi^a(p)=\pi^b(p).
+\label{eq:gp-absolute}
+\end{equation}
+We then identify oriented adjacencies shared by both parents. Their connected components form relative fragment groups. When a fragment $i$ is assigned a position, its connected partners $j$ can be placed by translation:
+\begin{equation}
+r_s(j)=r_s(i)+r_G(j)-r_G(i),\quad j\in G,
+\label{eq:gp-relative}
+\end{equation}
+provided that all placements remain within the grid and do not conflict with occupied cells.
+
+\noindent
+\textbf{Policy guided completion.}
+For each distinct partial offspring, the policy generates the score matrix $S$ once. The Hungarian algorithm solves a one to one assignment between vacant positions $\mathcal U$ and unused fragments $\mathcal R$:
+\begin{equation}
+\mathcal M^*=\arg\max_{\mathcal M\in\mathfrak M(\mathcal U,\mathcal R)}
+\sum_{(p,i)\in\mathcal M}S_{p,i}.
+\label{eq:gp-hungarian}
+\end{equation}
+Here $\mathfrak M(\mathcal U,\mathcal R)$ denotes all one to one complete matchings. Matched pairs are committed in descending score order. After each commitment, compatible parent shared groups are inherited. Any remaining slots are matched using the same policy scores, yielding a complete permutation.
+
+\noindent
+\textbf{Mutation and refinement.}
+Nonelite offspring undergo swaps, three fragment cycles, or block exchanges. Periodic local search evaluates all two position swaps of the best candidate and accepts the highest scoring improvement. The final output is the best assembly encountered during genetic search.
+
+
+
 \section{Experiments}
+
+\begin{table*}[t]
+\centering
+\caption{Comparison with existing methods on GAP-3 and GAP-5. PA, AA, and SRA are reported as percentages (higher is better).}
+\label{tab:main_results}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccccc@{}}
+\toprule
+& \multicolumn{3}{c}{GAP-3 ($3\times3$)}
+& \multicolumn{3}{c}{GAP-5 ($5\times5$)} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+Method & PA (\%) $\uparrow$ & AA (\%) $\uparrow$ & SRA (\%) $\uparrow$
+& PA (\%) $\uparrow$ & AA (\%) $\uparrow$ & SRA (\%) $\uparrow$ \\
+\midrule
+\multicolumn{7}{@{}l}{\textit{Classical}} \\
+Greedy  & 0.0 & 11.6 & 8.6 & 0.0 & 4.1 & 3.7 \\
+GA  & 0.0 & 11.1 & 8.5 & 0.0 & 11.1 & 8.5 \\
+\addlinespace[3pt]
+\multicolumn{7}{@{}l}{\textit{Deep Learning}} \\
+JigsawGAN  & 4.6 & 45.3 & 35.9 & 0.0 & 18.0 & 12.0 \\
+DiffAssemble & 16.4 & 50.5 & 43.4 & 0.0 & 21.9 & 14.7 \\
+JPDVT  & 0.0 & 11.2 & 8.4 & 0.0 & 3.9 & 3.2 \\
+Elkin et al.  & 0.0 & 14.8 & 9.9 & 0.0 & 7.8 & 4.5 \\
+FCViT  & 25.2 & 60.7 & 47.6 & 0.0 & 20.4 & 13.8 \\
+PuzzleFlow & 28.5 & 62.9 & 55.7 & 0.3 & 29.1 & 19.8 \\
+\midrule
+\textbf{GlobalPuzzle (Ours)} & \textbf{69.2} & \textbf{80.2} & \textbf{77.4} & \textbf{19.5} & \textbf{48.4} & \textbf{45.5} \\
+\bottomrule
+\end{tabular*}
+\end{table*}
 
 \section{Conclusion}
 

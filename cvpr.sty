@@ -1,7 +1,33 @@
-\NeedsTeXFormat{LaTeX2e}[1999/12/01]
-\ProvidesPackage{cvpr}[2026 LaTeX class for IEEE CVPR]
+% ---------------------------------------------------------------
+%
+% No guarantee is given that the format corresponds perfectly to
+% IEEE 8.5" x 11" Proceedings, but most features should be ok.
+%
+% ---------------------------------------------------------------
+% with LaTeX2e:
+% =============
+%
+% use as
+%   \documentclass[times,10pt,twocolumn]{article}
+%   \usepackage[options]{cvpr}
+%   \usepackage{times}
+%
+% "options" should be replaced by
+%  * "review" for submitting a paper for review,
+%  * "final" for the camera ready, and
+%  * "rebuttal" for the author rebuttal.
+%
+% specify references as
+%   {\small
+%   \bibliographystyle{ieee}
+%   \bibliography{...your files...}
+%   }
+% ---------------------------------------------------------------
 
-\RequirePackage{times}    %
+\NeedsTeXFormat{LaTeX2e}[1999/12/01]
+\ProvidesPackage{cvpr}[2027 LaTeX class for IEEE CVPR]
+
+\RequirePackage{times}    % Integrate Times for here
 \RequirePackage{xspace}
 \RequirePackage[dvipsnames]{xcolor}
 \RequirePackage{graphicx}
@@ -11,20 +37,22 @@
 \RequirePackage[numbers,sort&compress]{natbib}
 \setlength{\bibsep}{1pt plus 1pt minus 1pt}
 
-\RequirePackage{silence}  %
+\RequirePackage{silence}  % Suppress unwanted warnings
 \hbadness=10000 \vbadness=10000 \vfuzz=30pt \hfuzz=30pt
 \WarningFilter{latexfont}{Font shape declaration}
 \WarningFilter{latex}{Font shape}
 \WarningFilter[rebuttal]{latex}{No \author given}
 \RequirePackage{etoolbox}
 
+% Use modern caption package to allow for sub-figures etc.
+% Reproduces the original CVPR/ICCV style as closely as possible.
 \RequirePackage[format=plain,labelformat=simple,labelsep=period,font=small,compatibility=false]{caption}
 \RequirePackage[font=footnotesize,skip=3pt,subrefformat=parens]{subcaption}
 
 
-\newtoggle{cvprfinal}        %
-\newtoggle{cvprrebuttal}     %
-\newtoggle{cvprpagenumbers}  %
+\newtoggle{cvprfinal}        % Camera-ready version
+\newtoggle{cvprrebuttal}     % Rebuttal
+\newtoggle{cvprpagenumbers}  % Force page numbers (in camera ready)
 \toggletrue{cvprfinal}
 \togglefalse{cvprrebuttal}
 \togglefalse{cvprpagenumbers}
@@ -34,14 +62,18 @@
 \DeclareOption*{\PackageWarning{cvpr}{Unkown option `\CurrentOption'}}
 \ProcessOptions\relax
 
+% Don't warn about missing author for rebuttal
 \iftoggle{cvprrebuttal}{%
   \ActivateWarningFilters[rebuttal]
 }{}
 
+% Breaking lines for URLs in the bib
 \RequirePackage[hyphens]{url}
 \Urlmuskip=0mu plus 1mu\relax
 
 
+% ---------------------------------------------------------------
+% Inlined version of the obsolete "everyshi-2001-05-15" package.
 \newcommand{\@EveryShipout@Hook}{}
 \newcommand{\@EveryShipout@AtNextHook}{}
 \newcommand*{\EveryShipout}[1]
@@ -72,8 +104,11 @@
    \let\shipout\@EveryShipout@Shipout
    }
 \AtBeginDocument{\@EveryShipout@Init}
+% ---------------------------------------------------------------
 
 
+% ---------------------------------------------------------------
+% Inlined simplified version of the "eso-pic" package.
 \newcommand\LenToUnit[1]{#1\@gobble}
 \newcommand\AtPageUpperLeft[1]{%
   \begingroup
@@ -174,15 +209,26 @@
 \else
   \def\ESO@yoffsetI{\paperheight}\def\ESO@yoffsetII{0pt}
 \fi
+% ---------------------------------------------------------------
 
 
 \typeout{CVPR 8.5 x 11-Inch Proceedings Style `cvpr.sty'.}
 
-\font\cvprtenhv  = phvb at 8pt %
+% ten point helvetica bold required for captions
+% eleven point times bold required for second-order headings
+% in some sites the name of the fonts may differ,
+% change the name here:
+\font\cvprtenhv  = phvb at 8pt % *** IF THIS FAILS, SEE cvpr.sty ***
 \font\elvbf  = ptmb scaled 1100
 \font\tenbf  = ptmb scaled 1000
 
+% If the above lines give an error message, try to comment them and
+% uncomment these:
+%\font\cvprtenhv  = phvb7t at 8pt
+%\font\elvbf  = ptmb7t scaled 1100
+%\font\tenbf  = ptmb7t scaled 1000
 
+% set dimensions of columns, gap between columns, and paragraph indent
 \setlength{\textheight}{8.875in}
 \setlength{\textwidth}{6.875in}
 \setlength{\columnsep}{0.3125in}
@@ -194,14 +240,17 @@
 \setlength{\evensidemargin}{-0.1875in}
 
 
+% Suppress page numbers when the appropriate option is given
 \iftoggle{cvprpagenumbers}{}{%
   \pagestyle{empty}
 }
 
 \AtBeginDocument{%
+  % Print an error if document class other than article is used
   \@ifclassloaded{article}{}{%
     \PackageError{cvpr}{Package only meant to be used with document class `article'}{Change document class to `article'.}
   }
+  % Print a warning if incorrect options for article are specified
   \@ifclasswith{article}{10pt}{}{%
     \PackageWarningNoLine{cvpr}{Incorrect font size specified - CVPR requires 10-point fonts. Please load document class `article' with `10pt' option}
   }
@@ -211,6 +260,7 @@
   \@ifclasswith{article}{letterpaper}{}{%
     \PackageWarningNoLine{cvpr}{Incorrect paper size - CVPR uses paper size `letter'. Please load document class `article' with `letterpaper' option}
   }
+  % Print a warning if hyperref is not loaded and/or if the pagebackref option is missing
   \iftoggle{cvprfinal}{%
     \@ifpackageloaded{hyperref}{}{%
       \PackageWarningNoLine{cvpr}{Package `hyperref' is not loaded, but highly recommended for camera-ready version}
@@ -231,7 +281,9 @@
    \null
    \iftoggle{cvprrebuttal}{\vspace*{-.3in}}{\vskip .375in}
    \begin{center}
+      % smaller title font only for rebuttal
       \iftoggle{cvprrebuttal}{{\large \bf \@title \par}}{{\Large \bf \@title \par}}
+      % additional two empty lines at the end of the title
       \iftoggle{cvprrebuttal}{\vspace*{-22pt}}{\vspace*{24pt}}{
         \large
         \lineskip .5em
@@ -240,20 +292,21 @@
             \@author
           }{
             \iftoggle{cvprrebuttal}{}{
-              Anonymous \confName~submission\\
-              \vspace*{1pt}\\
-              Paper ID \paperID
+              Anonymous \confName~submission
             }
           }
         \end{tabular}
         \par
       }
+      % additional small space at the end of the author name
       \vskip .5em
+      % additional empty line at the end of the title block
       \vspace*{12pt}
    \end{center}
 }
 
 \def\abstract{%
+   % Suppress page numbers when the appropriate option is given
    \iftoggle{cvprpagenumbers}{}{%
      \thispagestyle{empty}
    }
@@ -263,11 +316,13 @@
 }
 
 \def\endabstract{%
+   % additional empty line at the end of the abstract
    \vspace*{12pt}
    }
 
 \def\affiliation#1{\gdef\@affiliation{#1}} \gdef\@affiliation{}
 
+% correct heading spacing and type
 \def\cvprsection{\@startsection {section}{1}{\z@}
    {-10pt plus -2pt minus -2pt}{7pt} {\large\bf}}
 \def\cvprssect#1{\cvprsection*{#1}}
@@ -286,11 +341,17 @@
 \def\cvprsubsubsect#1{\cvprsubsubsection{\texorpdfstring{\hskip -1em.~}{}#1}}
 \def\subsubsection{\@ifstar\cvprssubsubsect\cvprsubsubsect}
 
+%% --------- Page background marks: Ruler and confidentiality (only for review and rebuttal)
 \iftoggle{cvprfinal}{
+  % In review and rebuttal mode, we use the "lineno" package for numbering lines.
+  % When switching to a different mode, the "\@LN" macro may remain in cached .aux files,
+  % leading to build errors (https://github.com/cvpr-org/author-kit/issues/49).
+  % Defining the macro as empty fixes that (https://tex.stackexchange.com/a/125779).
   \makeatletter
   \providecommand{\@LN}[2]{}
   \makeatother
 }{
+  % ----- define vruler
   \makeatletter
   \newbox\cvprrulerbox
   \newcount\cvprrulercount
@@ -300,6 +361,7 @@
   \newbox\cv@tmpbox
   \newcount\cv@refno
   \newcount\cv@tot
+  % NUMBER with left flushed zeros  \fillzeros[<WIDTH>]<NUMBER>
   \newcount\cv@tmpc@ \newcount\cv@tmpc
   \def\fillzeros[#1]#2{\cv@tmpc@=#2\relax\ifnum\cv@tmpc@<0\cv@tmpc@=-\cv@tmpc@\fi
   \cv@tmpc=1 %
@@ -309,17 +371,24 @@
   \loop\ifnum\cv@tmpc<#1\relax0\advance\cv@tmpc1\relax\fi \ifnum\cv@tmpc<#1 \repeat
   \cv@tmpc@=#2\relax\ifnum\cv@tmpc@<0\cv@tmpc@=-\cv@tmpc@\fi \relax\the\cv@tmpc@}%
   \makeatother
+  % ----- end of vruler
 
+  %% Define linenumber setup
   \RequirePackage[switch,mathlines]{lineno}
 
+  % Line numbers in CVPR blue using font from \cvprtenhv
   \renewcommand\linenumberfont{\cvprtenhv\color[rgb]{.5,.5,1}}
 
   \renewcommand\thelinenumber{\fillzeros[3]{\arabic{linenumber}}}
 
   \setlength{\linenumbersep}{.75cm}
 
+  % Bug: An equation with $$ ... $$ isn't numbered, nor is the previous line.
 
-  \RequirePackage{etoolbox} %
+  % Patch amsmath commands so that the previous line and the equation itself
+  % are numbered. Bug: multiline has an extra line number.
+  % https://tex.stackexchange.com/questions/461186/how-to-use-lineno-with-amsmath-align
+  \RequirePackage{etoolbox} %% <- for \pretocmd, \apptocmd and \patchcmd
 
   \newcommand*\linenomathpatch[1]{%
     \expandafter\pretocmd\csname #1\endcsname {\linenomath}{}{}%
@@ -334,13 +403,16 @@
     \expandafter\apptocmd\csname end#1*\endcsname {\endlinenomath}{}{}%
   }
 
+  %% Definition of \linenomathAMS depends on whether the mathlines option is provided
   \expandafter\ifx\linenomath\linenomathWithnumbers
   \let\linenomathAMS\linenomathWithnumbers
+  %% The following line gets rid of an extra line numbers at the bottom:
   \patchcmd\linenomathAMS{\advance\postdisplaypenalty\linenopenalty}{}{}{}
   \else
   \let\linenomathAMS\linenomathNonumbers
   \fi
 
+  % Add the numbers
   \linenumbers
   \AtBeginDocument{%
     \linenomathpatch{equation}%
@@ -351,22 +423,27 @@
     \linenomathpatchAMS{flalign}%
   }
 
+  % \makevruler[<SCALE>][<INITIAL_COUNT>][<STEP>][<DIGITS>][<HEIGHT>]
   \def\cvprruler#1{\makevruler[12pt][#1][1][3][0.993\textheight]\usebox{\cvprrulerbox}}
   \AddToShipoutPicture{%
     \color[rgb]{.5,.5,1}
 
-    \def\pid{\parbox{1in}{\begin{center}\bf\sf{\small \confName}\\\small \#\paperID\end{center}}}
-    \AtTextUpperLeft{%
+        \def\pid{\parbox{1in}{\begin{center}\bf\sf{\small \confName}\end{center}}}
+    \AtTextUpperLeft{%conference name in corners
       \put(\LenToUnit{-65pt},\LenToUnit{45pt}){\pid}
       \put(\LenToUnit{\textwidth-12pt},\LenToUnit{45pt}){\pid}
     }
-    \AtTextUpperLeft{%
+    \AtTextUpperLeft{%confidential
       \put(0,\LenToUnit{1cm}){\parbox{\textwidth}{\centering\cvprtenhv
-      \confName~\confYear~Submission \#\paperID. CONFIDENTIAL REVIEW COPY.  DO NOT DISTRIBUTE.}}
+      \confName~\confYear~Submission. CONFIDENTIAL REVIEW COPY.  DO NOT DISTRIBUTE.}}
     }
   }
-} %
+} % end of not cvprfinal
 
+%%% Make figure placement a little more predictable.
+% We trust the user to move figures if this results
+% in ugliness.
+% Minimize bad page breaks at figures
 \renewcommand{\textfraction}{0.01}
 \renewcommand{\floatpagefraction}{0.99}
 \renewcommand{\topfraction}{0.99}
@@ -377,6 +454,8 @@
 \setcounter{topnumber}{99}
 \setcounter{bottomnumber}{99}
 
+% Add a period to the end of an abbreviation unless there's one
+% already, then \xspace.
 \makeatletter
 \DeclareRobustCommand\onedot{\futurelet\@let@token\@onedot}
 \def\@onedot{\ifx\@let@token.\else.\null\fi\xspace}
@@ -390,7 +469,9 @@
 \def\etal{\emph{et al}\onedot}
 \makeatother
 
+% ---------------------------------------------------------------
 
+%% redefine the \title command so that a variable name is saved in \thetitle, and provides the \maketitlesupplementary command
 \let\titleold\title
 \renewcommand{\title}[1]{\titleold{#1}\newcommand{\thetitle}{#1}}
 \def\maketitlesupplementary
@@ -402,10 +483,13 @@
         \textbf{\thetitle}\\
         \vspace{0.5em}Supplementary Material \\
         \vspace{1.0em}
-       ] %
+       ] %< twocolumn
    }
 
+% ---------------------------------------------------------------
 
+%% Support for easy cross-referencing (e.g. \cref{sec:intro}
+% configured with \AtEndPreamble as it needs to be called after hyperref
 \AtEndPreamble{
     \usepackage[capitalize]{cleveref}
     \crefname{section}{Sec.}{Secs.}
@@ -414,7 +498,9 @@
     \crefname{table}{Tab.}{Tabs.}
 }
 
+% ---------------------------------------------------------------
 
+%% More compact compact itemize/enumeration (e.g. list contributions)
 \RequirePackage[shortlabels,inline]{enumitem}
 \setlist[itemize]{noitemsep,leftmargin=*,topsep=0em}
 \setlist[enumerate]{noitemsep,leftmargin=*,topsep=0em}

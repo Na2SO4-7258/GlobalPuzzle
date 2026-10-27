@@ -13,6 +13,37 @@
 %% archives in directory macros/latex/base/lppl.txt; either
 %% version 1 of the License, or any later version.
 %%
+ % Version and source file information:
+ % \ProvidesFile{natbst.mbs}[2007/11/26 1.93 (PWD)]
+ %
+ % BibTeX `plainnat' family
+ %   version 0.99b for BibTeX versions 0.99a or later,
+ %   for LaTeX versions 2.09 and 2e.
+ %
+ % For use with the `natbib.sty' package; emulates the corresponding
+ %   member of the `plain' family, but with author-year citations.
+ %
+ % With version 6.0 of `natbib.sty', it may also be used for numerical
+ %   citations, while retaining the commands \citeauthor, \citefullauthor,
+ %   and \citeyear to print the corresponding information.
+ %
+ % For version 7.0 of `natbib.sty', the KEY field replaces missing
+ %   authors/editors, and the date is left blank in \bibitem.
+ %
+ % Includes field EID for the sequence/citation number of electronic journals
+ %  which is used instead of page numbers.
+ %
+ % Includes fields ISBN and ISSN.
+ %
+ % Includes field URL for Internet addresses.
+ %
+ % Includes field DOI for Digital Object Idenfifiers.
+ %
+ % Works best with the url.sty package of Donald Arseneau.
+ %
+ % Works with identical authors and year are further sorted by
+ %   citation key, to preserve any natural sequence.
+ %
 ENTRY
   { address
     author
@@ -188,6 +219,7 @@ FUNCTION {format.names}
   s num.names$ 'numnames :=
   numnames 'namesleft :=
     { namesleft #0 > }
+    % Formerly { s nameptr "{f.~}{vv~}{ll}{, jj}" format.name$ 't :=
     { s nameptr "{ff }{vv }{ll}{, jj}" format.name$ 't :=
       nameptr #1 >
         { namesleft #1 >
@@ -240,6 +272,7 @@ FUNCTION {format.editors}
 FUNCTION {format.isbn}
 { isbn empty$
     { "" }
+%    { new.block "ISBN " isbn * }
     { "" }
   if$
 }
@@ -247,6 +280,7 @@ FUNCTION {format.isbn}
 FUNCTION {format.issn}
 { issn empty$
     { "" }
+%    { new.block "ISSN " issn * }
     { "" }
   if$
 }
@@ -254,6 +288,7 @@ FUNCTION {format.issn}
 FUNCTION {format.url}
 { url empty$
     { "" }
+%    { new.block "URL \url{" url * "}" * }
     { "" }
   if$
 }
@@ -261,6 +296,7 @@ FUNCTION {format.url}
 FUNCTION {format.doi}
 { doi empty$
     { "" }
+%    { new.block "\doi{" doi * "}" * }
     { "" }
   if$
 }
@@ -389,6 +425,13 @@ FUNCTION {format.date}
        pop$ "" }
     'skip$
   if$
+%% CR: Leave out months.
+%  month empty$
+%    'skip$
+%    { month
+%      " " * swap$ *
+%    }
+%  if$
   extra.label *
 }
 
@@ -414,6 +457,14 @@ FUNCTION {either.or.check}
 FUNCTION {format.bvolume}
 { volume empty$
     { "" }
+%% CR: Don't show "volume 1234 of LNCS" etc.
+%    { "volume" volume tie.or.space.connect
+%      series empty$
+%        'skip$
+%        { " of " * series emphasize * }
+%      if$
+%      "volume and number" number either.or.check
+%    }
     { "" }
   if$
 }
@@ -421,6 +472,8 @@ FUNCTION {format.bvolume}
 FUNCTION {format.number.series}
 { volume empty$
     { number empty$
+%% CR: Leave out series information.
+%        { series field.or.null }
         { "" }
         { output.state mid.sentence =
             { "number" }
@@ -550,6 +603,12 @@ FUNCTION {format.chapter.pages}
 FUNCTION {format.in.ed.booktitle}
 { booktitle empty$
     { "" }
+%% CR: Leave out editors even if the information is available.
+%    { editor empty$
+%        { "In " booktitle emphasize * }
+%        { "In " format.editors * ", " * booktitle emphasize * }
+%      if$
+%    }
     { "In " booktitle emphasize * }
   if$
 }

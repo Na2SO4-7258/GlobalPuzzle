@@ -100,6 +100,15 @@ Before assembly, we independently apply LaMa to each eroded puzzle piece without
 \subsection{Evaluation Network}
 \label{sec:global-eval}
 
+\begin{figure*}[!t]
+    \centering
+    \includegraphics[width=\textwidth]{pic/ABC.pdf}
+    \caption{
+       The specific structure of the Evaluation Network and Policy Network
+    }
+    \label{fig:abc}
+\end{figure*}
+
 \textbf{Architecture.}
 The evaluator processes the resulting complete canvas using a multiscale CNN followed by a Transformer. Features pooled to the puzzle grid retain spatial organization, while a global token and spatial readout provide complementary representations. The network outputs a quality logit $z_\theta=A_\theta(C(\pi))$ and a fitness score $\hat Q(\pi)=\sigma(z_\theta)$. An auxiliary head estimates absolute accuracy during training.
 The evaluator processes a complete canvas using a multiscale CNN followed by a Transformer. Features pooled to the puzzle grid retain spatial organization, while a global token and spatial readout provide complementary representations. The network outputs a quality logit $z_\theta=A_\theta(C(\pi))$ and a fitness score $\hat Q(\pi)=\sigma(z_\theta)$. An auxiliary head estimates absolute accuracy during training.

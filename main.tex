@@ -210,9 +210,9 @@ After determining the final piece arrangement, we reconstruct the canvas using t
 \label{sec:exp-setup}
 
 \subsubsection{Datasets and Evaluation Metrics}
-We evaluate GlobalPuzzle on GAP-3 and GAP-5, which contain irregularly eroded image fragments arranged on $3\times3$ and $5\times5$ grids, respectively. We follow the dataset splits for training and evaluation. For complete canvas evaluation, each fragment is independently processed by LaMa to fill its missing regions. This operation supplies dense RGB inputs to the Evaluator Network without explicitly enforcing continuity between neighboring fragments. The Piece Encoder uses fragment information, while the Policy Network conditions placement queries on a partial canvas and its occupancy mask.
+We evaluate GlobalPuzzle on GAP-3 ($3\times3$) and GAP-5 ($5\times5$), following the official splits of 14,000 training, 3,000 validation, and 3,000 test puzzles for each dataset. Each fragment is independently inpainted using LaMa to provide RGB inputs for the Evaluator Network. The Piece Encoder processes individual fragments, while the Policy Network uses a partial canvas and occupancy mask.
 
-We report three standard metrics: perfect assembly accuracy (PA), absolute accuracy (AA), and structure reassembly accuracy (SRA). PA is the percentage of puzzles for which every fragment is placed correctly. AA measures the fraction of fragments assigned to their correct absolute positions, while SRA measures the proportion of ground truth oriented adjacency relationships preserved in the predicted arrangement. All three metrics are reported as percentages, with higher values indicating better reconstruction. PA measures complete puzzle recovery, whereas AA and SRA provide complementary information about partial correctness and structural consistency.
+We report perfect assembly accuracy (PA) and absolute accuracy (AA), measuring the percentage of fully reconstructed puzzles and correctly placed fragments, respectively. All experiments use an NVIDIA RTX 4060 GPU, with average reconstruction times of 9 and 44 seconds per puzzle on GAP-3 and GAP-5, respectively.
 
 \subsubsection{Network Training}
 GlobalPuzzle contains three learned components: the \emph{Evaluator Network}, the \emph{Policy Network}, and the \emph{Piece Encoder}. The Piece Encoder extracts reusable fragment representations. The Policy Network combines these representations with a partial canvas to predict fragment scores for candidate positions, while the Evaluator Network predicts the quality of a complete assembled canvas.
@@ -223,6 +223,14 @@ The Policy Network is trained on partially completed canvases containing both co
 
 \input{table/compare_table}
 
+\begin{figure*}[!t]
+    \centering
+    \includegraphics[width=\textwidth]{pic/compare.pdf}
+    \caption{
+       Visual comparison of the restoration for each method.
+    }
+    \label{fig:compare}
+\end{figure*}
 
 
 \subsubsection{Genetic Search Configuration}
@@ -236,9 +244,9 @@ We compare GlobalPuzzle with classical optimization methods and learning based a
 
 Table~\ref{tab:main_results} compares reconstruction accuracy on GAP-3 and GAP-5. In the current experimental results, GlobalPuzzle achieves PA, AA, and SRA of $69.2\%$, $80.2\%$, and $77.4\%$ on GAP-3, respectively. On the more challenging GAP-5 benchmark, the corresponding values are $19.5\%$, $48.4\%$, and $45.5\%$. These results show improvements in complete reconstruction as well as fragment placement and structural consistency relative to the baselines listed in the table. The decline from GAP-3 to GAP-5 also indicates that larger assemblies remain substantially more difficult, despite the use of global image information and iterative search.
 
-The qualitative comparison in Fig.~\ref{fig:method-comparison} examines how different approaches handle missing boundaries and ambiguous visual content. Methods relying primarily on local compatibility may preserve some plausible neighboring relationships while placing larger image regions incorrectly. Direct prediction methods can recover substantial visual structure but do not explicitly revise a completed arrangement through subsequent search operations. GlobalPuzzle instead evaluates each candidate as a complete image and can revise fragment assignments, including the placement of connected groups, across generations. These capabilities are especially relevant when a locally plausible arrangement conflicts with the broader scene.
+Figure~\ref{fig:compare} compares reconstruction results from FCViT and PuzzleFlow, two leading puzzle reassembly methods, general purpose multimodal agents Codex and Claude, and our GlobalPuzzle. While existing methods and agents can recover partial image structures, they often struggle to produce fully correct arrangements. In contrast, GlobalPuzzle combines global visual evaluation with iterative genetic search to refine fragment placements and improve reconstruction accuracy.
 
-We also examine reconstruction attempts by general purpose multimodal agents, as illustrated in Fig.~\ref{fig:method-comparison}. Such agents can often identify semantic cues and propose plausible fragment relationships, but obtaining an exact permutation requires consistently tracking all fragment identities, positions, and adjacency constraints. Representative failures illustrate the gap between visually reasoning about the scene and reliably optimizing a complete combinatorial arrangement. These examples are intended to characterize common difficulties rather than establish a quantitative ranking against specialized puzzle solvers.
+\input{table/abulation}
 
 \subsection{Ablation Studies}
 \label{sec:exp-ablation}
@@ -248,18 +256,45 @@ We conduct controlled ablations to identify the contributions of the learned net
 \subsubsection{Evaluator Network and Policy Network}
 To assess the Evaluator Network, we replace its predicted fitness with the ground truth AA, ground truth SRA, or random fitness while keeping the remaining search procedure unchanged. Oracle AA and SRA provide diagnostic upper reference conditions for different search objectives, whereas random fitness isolates the effect of losing informative candidate evaluation. Importantly, an oracle objective does not guarantee that a finite search will reach its optimum.
 
-To assess the Policy Network, we replace its predicted fragment scores with either an oracle placement policy or random scores, retaining the same legal assignment constraints. This comparison evaluates whether learned position queries improve offspring completion beyond stochastic assignment, and how much performance remains limited by placement decisions when evaluation and genetic operators are unchanged.
+To assess the Policy Network, we replace its predicted fragment scores with either an oracle placement policy or random scores, retaining the same legal assignment constraints. This comparison evaluates whether learned position queries improve offspring completion beyond stochastic assignment. On GAP-3, random policy scores cause only a modest performance drop, as the smaller search space allows genetic search guided by the Evaluator Network to compensate through sufficient candidate exploration. In contrast, GAP-5 exhibits a sharp accuracy decline, highlighting the importance of learned placement guidance in larger combinatorial search spaces.
 
 \subsubsection{Genetic Search Operations}
-We separately remove shared absolute placement inheritance and shared relative adjacency inheritance to examine their contributions to offspring construction. The former transfers positions that both parents agree upon, while the latter preserves fragment groups whose relative geometry is consistent across parents and allows these groups to be translated when feasible. We further disable mutation and local refinement individually to evaluate their effects on search diversity and solution quality. These ablations distinguish the benefits of inheriting existing structures from the ability to escape incorrect structures through subsequent modifications.
+To evaluate the contribution of genetic search, we remove the genetic algorithm and directly generate a complete assembly using a single Policy Network prediction. This ablation examines whether iterative search guided by the Evaluator Network improves reconstruction accuracy compared with one step placement prediction.
 
 \subsection{Analysis of the Evaluator Network and Policy Network}
 \label{sec:exp-network-analysis}
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=\linewidth]{pic/A.pdf}
+    \caption{
+       Evaluator Network: Mean predicted fitness versus the number of misplaced pieces on GAP-3 and GAP-5.
+    }
+    \label{fig:A}
+\end{figure}
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=\linewidth]{pic/BC.pdf}
+    \caption{
+       Policy Network: Top-1 accuracy versus the number of correctly placed pieces on GAP-3 and GAP-5.
+    }
+    \label{fig:BC}
+\end{figure}
 
 \subsubsection{Evaluator Network}
 We assess whether the Evaluator Network provides a reliable optimization signal beyond merely distinguishing complete solutions from obviously incorrect ones. For candidate assemblies with known ground truth, we compare predicted fitness against the target quality $Q$ and measure their correlation. Figure~\ref{fig:fitness-scatter} visualizes the correspondence between predicted and true quality across different levels of reconstruction accuracy. This analysis reveals both the calibration of the predicted scores and any systematic deviations for low quality or nearly correct assemblies.
 
 We additionally examine ranking accuracy by sampling pairs of candidate assemblies from the same puzzle and measuring how frequently the predicted fitness preserves their true quality ordering. Candidates are grouped by the number of misplaced fragments and by perturbation type. In particular, block swaps, row and column shifts, and other structured rearrangements test whether the evaluator detects coherent but globally misplaced image regions. Unlike a measure based only on local boundary agreement, this evaluation probes the network's sensitivity to the overall visual organization of the assembled image.
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=\linewidth]{pic/ga.pdf}
+    \caption{
+       Genetic search progression from unordered fragments to correct reconstruction. Green boxes indicate correct placements, while orange outlines highlight correctly connected fragment groups.
+    }
+    \label{fig:ga}
+\end{figure}
 
 \subsubsection{Policy Network}
 We measure the Policy Network using top one fragment prediction accuracy over supervised empty positions. A prediction is correct when the highest scoring fragment matches the target, with accuracy computed from the prediction scores before the assignment stage. This isolates the learned placement signal from the effects of the Hungarian algorithm and later genetic search.
@@ -269,23 +304,23 @@ We report results separately for GAP-3 and GAP-5 to study the effect of increasi
 \subsection{Analysis of the Genetic Search Process}
 \label{sec:exp-search-analysis}
 
-We analyze the evolution of candidate assemblies throughout genetic search. Figure~\ref{fig:search-evolution} presents the best candidate from selected generations together with its reconstruction quality. This visualization illustrates how search can improve a partially correct arrangement through changes in individual fragment positions and the translation of connected fragment groups. Such group operations are particularly useful when several fragments have a consistent internal arrangement but occupy an incorrect region of the canvas.
-
-We further examine the effect of the number of generations on final PA, AA, and SRA. Alongside these reconstruction metrics, we record the best predicted fitness and the diversity of candidate arrangements throughout search. Because elites are preserved, the best predicted fitness cannot decrease between generations. Ground truth reconstruction accuracy, however, need not improve monotonically, since the Evaluator Network is an approximation of the target quality. Comparing these curves helps distinguish limited search exploration from errors in the learned evaluation signal.
+We analyze the evolution of candidate assemblies throughout genetic search. Figure~\ref{fig:ga} presents the best candidate from selected generations together with its reconstruction quality. This visualization illustrates how search can improve a partially correct arrangement through changes in individual fragment positions and the translation of connected fragment groups. Such group operations are particularly useful when several fragments have a consistent internal arrangement but occupy an incorrect region of the canvas.
 
 \subsection{Real World Photo Reconstruction and Generalization}
 \label{sec:exp-generalization}
 
-To examine generalization beyond the artwork dominated benchmark images, we additionally consider photographs captured in everyday environments. The photographs cover different scene types, textures, and visual structures and are converted into irregular fragment puzzles using the same fragmentation protocol as the benchmark. We apply the trained GlobalPuzzle framework without adapting the networks to individual test images. Figure~\ref{fig:real-world} presents representative reconstructions at both $3\times3$ and $5\times5$ resolutions.
+To evaluate generalization beyond the GAP benchmarks, we apply GlobalPuzzle to real world photographs and puzzle configurations of different sizes, including rectangular grids such as $3\times4$ and $2\times5$. All images are fragmented using the same protocol as GAP, and the pretrained networks are applied without additional training or fine tuning. Figure~\ref{fig:live} presents representative reconstruction results across different scenes and puzzle configurations.
 
-This evaluation examines whether the learned global quality signal and placement policy remain useful when the image content differs from that seen during training. Photographs containing distinctive objects and coherent large scale geometry may provide useful cues for global evaluation, whereas repeated textures, uniform backgrounds, and weak visual landmarks can create additional ambiguity. Comparing the two puzzle sizes allows us to analyze how these factors interact with the larger combinatorial search space. The results provide a complementary assessment of transferability beyond the GAP benchmarks.
+These experiments examine the ability of GlobalPuzzle to generalize to unseen image content and grid dimensions. By combining global visual evaluation with flexible genetic search, our framework can reconstruct puzzles beyond the square configurations used during training.
 
-\subsection{Computational Efficiency}
-\label{sec:exp-efficiency}
-
-We analyze the computational requirements of GlobalPuzzle in terms of model size and reconstruction time. Parameter counts are reported separately for the Piece Encoder, the Policy Network excluding the Piece Encoder, and the Evaluator Network, together with the total number of unique trainable parameters. For inference efficiency, the Piece Encoder computes reusable fragment features, and repeated candidate evaluations are performed in batches whenever possible.
-
-We report the mean solving time per puzzle on GAP-3 and GAP-5 under identical hardware and search settings. We additionally vary population size and the number of generations to study the tradeoff between computation and reconstruction accuracy. Larger search budgets permit more candidate evaluations and structural rearrangements but increase inference cost. This analysis clarifies how the framework scales from nine to twenty five fragments and identifies practical operating points for accuracy and runtime.
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=\linewidth]{pic/live.pdf}
+    \caption{
+       Reconstructing images from different numbers and sizes of fragments in daily life.
+    }
+    \label{fig:live}
+\end{figure}
 
 
 \section{Conclusion}

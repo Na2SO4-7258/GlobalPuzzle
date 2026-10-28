@@ -1,0 +1,23 @@
+\begin{table}[t]
+\centering
+\caption{Ablation study}
+\label{tab:ablation}
+\begingroup
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{1pt}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lcccc@{}}
+\toprule
+& \multicolumn{2}{c}{GAP-3}
+& \multicolumn{2}{c}{GAP-5} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Method & PA $\uparrow$ & AA $\uparrow$ & PA $\uparrow$ & AA $\uparrow$ \\
+\midrule
+\shortstack[l]{Random Evaluator\\Network} & 20.3 & 52.6 & 0.0 & 10.9 \\
+\shortstack[l]{Random Policy\\Network} & 65.1 & 73.4 & 0.0 & 10.9 \\
+\shortstack[l]{Policy Network only\\(no GA, one pass)} & 21.4 & 39.0 & 0.1 & 5.2 \\
+\midrule
+\textbf{GlobalPuzzle (Full)} & \textbf{69.2} & \textbf{80.2} & \textbf{19.5} & \textbf{48.4} \\
+\bottomrule
+\end{tabular*}
+\endgroup
+\end{table}

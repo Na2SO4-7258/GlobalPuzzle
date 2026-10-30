@@ -4,20 +4,23 @@
 \label{tab:ablation}
 \begingroup
 \renewcommand{\arraystretch}{1.15}
-\setlength{\tabcolsep}{1pt}
-\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lcccc@{}}
+\resizebox{\columnwidth}{!}{
+\begin{tabular}{@{}l@{\hspace{14pt}}cccc@{}}
 \toprule
 & \multicolumn{2}{c}{GAP-3 (\%)}
 & \multicolumn{2}{c}{GAP-5 (\%)} \\
 \cmidrule(lr){2-3}\cmidrule(lr){4-5}
 Method & PA $\uparrow$ & AA $\uparrow$ & PA $\uparrow$ & AA $\uparrow$ \\
 \midrule
-\shortstack[l]{Random Evaluation\\Network} & 20.3 & 52.6 & 0.0 & 10.9 \\
-\shortstack[l]{Random Policy\\Network} & 65.1 & 73.4 & 0.0 & 10.9 \\
-\shortstack[l]{Policy Network only\\(no GA, one pass)} & 21.4 & 39.0 & 0.1 & 5.2 \\
+Random Evaluation Network & 1.9 & 25.2 & 0.0 & 9.6 \\
+Random Policy Network & 65.1 & 73.4 & 0.0 & 16.9 \\
+No Crossover & 60.0 & 75.4 & 10.4 & 42.5 \\
+No Swapping & 63.5 & 76.2 & 11.3 & 42.7 \\
+No Crossover and Swapping & 54.5 & 70.7 & 0.1 & 9.3 \\
 \midrule
 GlobalPuzzle (Full) & \textbf{69.2} & \textbf{80.2} & \textbf{19.5} & \textbf{48.4} \\
 \bottomrule
-\end{tabular*}
+\end{tabular}
+}
 \endgroup
 \end{table}

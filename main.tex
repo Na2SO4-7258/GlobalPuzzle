@@ -54,11 +54,11 @@ Existing methods face two major limitations. On the one hand, many deep learning
 
 Preserving connected fragment groups is an established principle of traditional genetic puzzle solvers~\cite{sholomon2013genetic}. Their crossover operators inherit shared connections and relocate assembled segments while preserving internal relationships. GlobalPuzzle builds on this existing principle: connected group preservation itself is not our contribution. Mutation and population diversity allow inherited structures to be revised, but effective search also needs reliable placement guidance and candidate evaluation. Our focus is to supply both decisions with global visual information from the assembled canvas.
 
-Motivated by these observations, we propose GlobalPuzzle, which couples explicit fragment group operations with visual guidance from assembled canvases. The Policy Network uses the partial canvas to guide placement, while the Evaluation Network scores complete canvases to guide genetic search. Crossover preserves and relocates shared connections, and mutation allows incorrect structures to be revised. Figure~\ref{fig:agent_comparison} illustrates the reconstruction task and position querying. Grid pooling and position to fragment matching allow the same trained model to process different canvas sizes, fragment sizes, and grid dimensions. Our contributions are threefold:
+Motivated by these observations, we propose GlobalPuzzle, which couples explicit fragment group operations with visual guidance from assembled canvases. The Policy Network uses the partial canvas to guide placement, while the Evaluation Network scores complete canvases to guide genetic search. Crossover preserves and relocates shared connections, and mutation allows incorrect structures to be revised. Figure~\ref{fig:agent_comparison} illustrates the reconstruction task and position querying. Grid pooling and position to fragment matching allow the same trained model to process different canvas sizes, fragment sizes, and grid dimensions. Our contributions can be summarized as:
 \begin{itemize}
     \item We integrate the established connected group inheritance of genetic puzzle solvers with learned global canvas evaluation and placement guidance in a unified reassembly framework.
-    \item We develop a model that accommodates different image dimensions, fragment sizes, and rectangular grids without retraining, enabling reuse beyond the puzzle configurations used for training.
-    \item We demonstrate improved reconstruction of severely eroded puzzles over the evaluated baselines, reaching perfect assembly accuracies of $69.2\%$ and $19.5\%$ on GAP-3 and GAP-5. Controlled ablations establish the contributions of global evaluation, placement guidance, and iterative search.
+    \item We develop a reliable evaluation network that supports arbitrary canvas and fragment sizes and assesses assemblies solely through global visual semantics, without requiring pixel alignment across fragment boundaries.
+    \item Our framework accommodates different image dimensions, fragment sizes, and rectangular grids without retraining, and improves reconstruction of severely eroded puzzles over the evaluated baselines, reaching perfect assembly accuracies of $69.2\%$ and $19.5\%$ on GAP-3 and GAP-5. Controlled ablations establish the contributions of global evaluation, placement guidance, and iterative search.
 \end{itemize}
 
 \section{Related Work}
@@ -88,7 +88,7 @@ Learned matching addresses the loss of boundary continuity. Deepzzle~\cite{pauma
 
 Alphazzle~\cite{paumard2023alphazzle} instead guides Monte Carlo tree search with policy and value networks that process the current reassembly. Its actions place the next fragment into an empty position. This provides visual guidance for sequential construction, but does not explicitly move an already connected group as a unit. GlobalPuzzle combines complete canvas evaluation with structural inheritance, connected group relocation, and placement guidance, allowing established arrangements to be revised during search.
 
-\section{Method}
+\section{Methodology}
 
 \subsection{Framework Overview}
 \label{sec:overview}
@@ -201,7 +201,7 @@ After determining the final piece arrangement, we reconstruct the canvas using t
 
 %-------------------------------------------------------------------------
 
-\section{Experiments}
+\section{Experiments and Results}
 \label{sec:experiments}
 
 \subsection{Experimental Setup}
@@ -253,13 +253,13 @@ Table~\ref{tab:ablation} isolates the learned networks and genetic operations un
 
 \subsubsection{Evaluation Network and Policy Network}
 \noindent\textbf{Evaluation governs the search.}
-The Evaluation Network has the strongest overall influence because its fitness scores direct the entire genetic algorithm: they determine elite retention, parent selection, local refinement, and the final output. Random evaluation reduces GAP-3 PA/AA from $69.2/80.2\%$ to $1.9/25.2\%$ and GAP-5 from $19.5/48.4\%$ to $0.0/9.67\%$. Even with the learned policy and genetic operators intact, uninformative fitness cannot reliably retain good candidates or favor useful changes. Candidate diversity therefore cannot compensate for losing the signal that steers evolution.
+The Evaluation Network directs elite retention, parent selection, local refinement, and the final output. Random evaluation reduces GAP-3 PA/AA from $69.2/80.2\%$ to $1.9/25.2\%$ and GAP-5 from $19.5/48.4\%$ to $0.0/9.67\%$. Even with the learned policy and genetic operators intact, uninformative fitness cannot reliably retain good candidates. Candidate diversity therefore cannot compensate for losing the signal that steers evolution.
 
 \noindent\textbf{Policy guidance becomes critical as the grid grows.}
-Random policy scores retain legal assignments but remove learned placement guidance. On GAP-3, PA decreases only from $69.2\%$ to $65.1\%$, while AA falls from $80.2\%$ to $73.4\%$. A $3\times3$ puzzle has only $9!$ arrangements before constraints; inheriting fixed placements or connected groups further reduces the remaining combinations. Population diversity can thus explore many feasible completions for the trained evaluator to select from, partly compensating for a poor policy. This explains the small PA drop without implying guaranteed exhaustive enumeration. On GAP-5, random policy scores reduce PA to $0.0\%$ and AA to $16.9\%$. With $25!$ unconstrained arrangements, the same search budget cannot supply enough useful candidates through unguided completion. The policy is therefore essential for directing proposals toward promising regions of the larger search space.
+Random policy scores retain legal assignments but remove learned placement guidance. On GAP-3, PA decreases from $69.2\%$ to $65.1\%$ and AA from $80.2\%$ to $73.4\%$. Inherited placements and connected groups constrain the $9!$ arrangements, allowing population diversity to partly compensate for weak guidance without guaranteeing exhaustive search. On GAP-5, random policy scores reduce PA to $0.0\%$ and AA to $16.9\%$. With $25!$ unconstrained arrangements, the same budget cannot supply enough useful candidates through unguided completion. The policy therefore becomes essential for exploring the larger search space.
 
 \subsubsection{Genetic Search Operations}
-Crossover and swapping both continually modify assemblies to supply candidates for evaluation. Crossover recombines inherited placements and connected groups, while swapping revises fragment positions within an assembly. Removing crossover leaves swapping available and yields GAP-3/GAP-5 PA of $60.0/10.4\%$; removing swapping leaves crossover available and yields $63.5/11.3\%$. Each remaining operator can still propose changes that the evaluator selects, so the framework retains partial effectiveness despite lower accuracy.
+Crossover and swapping supply candidates for evaluation. Crossover recombines inherited placements and connected groups, while swapping revises fragment positions within an assembly. Removing crossover leaves swapping available and yields GAP-3/GAP-5 PA of $60.0/10.4\%$; removing swapping leaves crossover available and yields $63.5/11.3\%$. Each remaining operator can still propose changes that the evaluator selects, so the framework retains partial effectiveness despite lower accuracy.
 
 Removing both operators eliminates these complementary routes for revising candidates. GAP-5 PA/AA then collapse to $0.1/9.3\%$, compared with $19.5/48.4\%$ for the full model. GAP-3 retains $54.5/70.7\%$, consistent with the smaller search space being easier to cover. Together, these results show that evaluation chooses which candidates survive, while policy guidance and genetic variation determine which candidates become available. Reliable evaluation needs a continuing supply of useful alternatives, particularly on GAP-5.
 
@@ -324,9 +324,10 @@ These experiments examine the ability of GlobalPuzzle to generalize to unseen im
 
 
 \section{Conclusion}
- In this paper, we proposed GlobalPuzzle, a jigsaw puzzle reassembly framework that integrates global visual evaluation, placement prediction, and genetic search. Unlike methods relying primarily on local boundary compatibility or direct permutation prediction, GlobalPuzzle evaluates complete assemblies using global visual information while supporting iterative refinement through fragment replacement and connected group relocation. By combining the Piece Encoder, Policy Network, and Evaluation Network with genetic optimization, our framework enables flexible exploration of candidate arrangements. Experiments on GAP-3 and GAP-5 demonstrate the effectiveness of this approach, particularly for challenging puzzles with irregularly eroded boundaries. Future work will investigate faster search for arbitrary fragment shapes and layouts.
+GlobalPuzzle integrates global canvas evaluation, placement guidance, and genetic search for eroded puzzles. Global semantics guide fragment replacement and connected group relocation without requiring pixel alignment. Experiments show improved reconstruction on GAP-3 and GAP-5 and generalization across canvas sizes and grid dimensions without retraining. Ablations show that reliable evaluation is essential for selecting useful assemblies, while placement guidance and genetic variation supply promising candidates, especially as the search space grows. The lower accuracy on GAP-5 shows that larger assemblies remain difficult despite global visual guidance. Future work will explore faster search for arbitrary fragment shapes and layouts under limited computational budgets.
 
 % End matter follows the eight-page main text; the body fills the final column.
+\pagebreak
 \clearpage
 \section*{LLM Usage Statement}
 % Required by the CVPR 2027 Author Guidelines; complete before submission.

@@ -211,16 +211,12 @@ After determining the final piece arrangement, we reconstruct the canvas using t
 \label{sec:exp-setup}
 
 \textbf{\noindent{Datasets and Evaluation Metrics}}
-
-\noindent
 We evaluate GlobalPuzzle on GAP-3 ($3\times3$) and GAP-5 ($5\times5$)~\cite{shahar2026gap}, following the official splits of 14,000 training, 3,000 validation, and 3,000 test puzzles for each dataset. Each fragment is independently inpainted using LaMa to provide RGB inputs for the Evaluation Network. The Piece Encoder processes individual fragments, while the Policy Network uses a partial canvas and occupancy mask.
 
 We report perfect assembly accuracy (PA) and absolute accuracy (AA), measuring the percentage of fully reconstructed puzzles and correctly placed fragments, respectively. All experiments use an NVIDIA RTX 4060 GPU, with average reconstruction times of 9 and 44 seconds per puzzle on GAP-3 and GAP-5, respectively.
 
 \noindent
 \textbf{Network Training}
-
-\noindent
 GlobalPuzzle contains three learned components: the \emph{Evaluation Network}, the \emph{Policy Network}, and the \emph{Piece Encoder}. The Piece Encoder extracts reusable fragment representations. The Policy Network combines these representations with a partial canvas to predict fragment scores for candidate positions, while the Evaluation Network predicts the quality of a complete assembled canvas.
 
 The Evaluation Network is supervised using the quality target $Q=0.6\,\mathrm{AA}+0.4\,\mathrm{SRA}$ described in Sec.~\ref{sec:global-eval}. Training candidates include correct assemblies, permutations with controlled numbers of misplaced fragments, and structural perturbations. Its objective combines score regression, calibration, candidate ranking, hard negative supervision, and auxiliary AA prediction. We train the Evaluation Network for 50 epochs using AdamW~\cite{loshchilov2019adamw}, a batch size of 16, a learning rate of $3\times10^{-4}$, weight decay of $0.05$, and a three epoch warmup. Mixed precision training~\cite{micikevicius2018mixed} is enabled.
@@ -241,14 +237,9 @@ The Policy Network is trained on partially completed canvases containing both co
 
 \noindent
 \textbf{Genetic Search Configuration}
-
-\noindent
 Unless otherwise specified, we use a population of 256 individuals, 30 generations, and four elites per generation. Parents are selected using fitness weighted sampling with exponent $\beta=4$. Genetic crossover preserves shared absolute placements and shared relative fragment relationships, followed by completion using the Policy Network and assignment optimization. We use a mutation rate of $0.05$ and an additional full permutation mutation probability of $0.20$. Local refinement is performed every five generations, with at most four accepted improvement steps per invocation. To maintain consistency across comparisons, the same search budget is used for the corresponding ablation variants.
 
-\noindent
 \textbf{Comparison Methods}
-
-\noindent
 We compare GlobalPuzzle with classical optimization methods and learning based approaches. The classical group includes greedy assembly~\cite{pomeranz2011greedy} and a conventional genetic algorithm~\cite{sholomon2013genetic} based on local fragment compatibility. The learning based group includes JigsawGAN~\cite{li2022jigsawgan}, DiffAssemble~\cite{scarpellini2024diffassemble}, JPDVT~\cite{liu2024jpdvt}, FCViT~\cite{kim2025fcvit}, PuzzleFlow~\cite{shahar2026gap}, and the method of Elkin et al.~\cite{elkin2026puzlm}. These baselines cover direct arrangement prediction, learned reconstruction, and compatibility driven optimization. We additionally examine representative attempts by general purpose multimodal agents to illustrate the challenges of explicit fragment manipulation and iterative reconstruction. Since agent attempts are analyzed as qualitative case studies, they are not treated as directly comparable benchmark measurements.
 
 \subsection{Comparison with Existing Methods and General Purpose Agents}
@@ -267,8 +258,6 @@ Table~\ref{tab:ablation} isolates the learned networks and genetic operations un
 
 \noindent
 \textbf{Evaluation Network and Policy Network}
-
-\noindent
 \noindent\textbf{Evaluation governs the search.}
 The Evaluation Network directs elite retention, parent selection, local refinement, and the final output. Random evaluation reduces GAP-3 PA/AA from $69.2/80.2\%$ to $1.9/25.2\%$ and GAP-5 from $19.5/48.4\%$ to $0.0/9.67\%$. Even with the learned policy and genetic operators intact, uninformative fitness cannot reliably retain good candidates. Candidate diversity therefore cannot compensate for losing the signal that steers evolution.
 
@@ -277,8 +266,6 @@ Random policy scores retain legal assignments but remove learned placement guida
 
 \noindent
 \textbf{Genetic Search Operations}
-
-\noindent
 Crossover and swapping supply candidates for evaluation. Crossover recombines inherited placements and connected groups, while swapping revises fragment positions within an assembly. Removing crossover leaves swapping available and yields GAP-3/GAP-5 PA of $60.0/10.4\%$; removing swapping leaves crossover available and yields $63.5/11.3\%$. Each remaining operator can still propose changes that the evaluator selects, so the framework retains partial effectiveness despite lower accuracy.
 
 Removing both operators eliminates these complementary routes for revising candidates. GAP-5 PA/AA then collapse to $0.1/9.3\%$, compared with $19.5/48.4\%$ for the full model. GAP-3 retains $54.5/70.7\%$, consistent with the smaller search space being easier to cover. Together, these results show that evaluation chooses which candidates survive, while policy guidance and genetic variation determine which candidates become available. Reliable evaluation needs a continuing supply of useful alternatives, particularly on GAP-5.
@@ -306,8 +293,6 @@ Removing both operators eliminates these complementary routes for revising candi
 
 \noindent
 \textbf{Evaluation Network}
-
-\noindent
 Figure~\ref{fig:A} plots mean predicted fitness against the number of misplaced fragments on GAP-3 and GAP-5. This diagnostic examines whether scores respond to intermediate reconstruction quality, beyond distinguishing complete solutions from incorrect assemblies. Such sensitivity matters because selection and refinement must compare partially correct candidates throughout search. The curves summarize average behavior; they do not establish that every candidate pair is ranked correctly. The random evaluation ablation complements this diagnostic by measuring the downstream effect of removing informative fitness from the complete solver.
 
 \begin{figure}[!t]
@@ -321,8 +306,6 @@ Figure~\ref{fig:A} plots mean predicted fitness against the number of misplaced 
 
 \noindent
 \textbf{Policy Network}
-
-\noindent
 Figure~\ref{fig:BC} reports the Policy Network's top one fragment prediction accuracy over supervised empty positions. A prediction is correct when the highest scoring fragment matches the target, with accuracy computed from the prediction scores before the assignment stage. This isolates the learned placement signal from the effects of the Hungarian algorithm and later genetic search.
 
 Results are reported separately for GAP-3 and GAP-5 and grouped by the number of correctly placed fragments to examine the effect of available visual context. The random policy ablation measures a different property: whether population search can compensate for losing this placement signal. Strong recovery on GAP-3 therefore does not make the policy redundant; its contribution becomes decisive when the larger GAP-5 search space limits candidate coverage.

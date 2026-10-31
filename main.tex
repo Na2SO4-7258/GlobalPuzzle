@@ -342,4 +342,29 @@ GlobalPuzzle integrates global canvas evaluation, placement guidance, and geneti
 \bibliography{references}
 }
 
+\clearpage
+\setcounter{page}{1}
+\setcounter{section}{0}
+\setcounter{table}{0}
+\setcounter{figure}{0}
+\setcounter{equation}{0}
+\renewcommand{\thesection}{\Alph{section}}
+\renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\thefigure}{S\arabic{figure}}
+\renewcommand{\theequation}{S\arabic{equation}}
+
+\twocolumn[{
+\begin{center}
+{\LARGE\bfseries Supplementary Material}
+\end{center}
+\vspace{1em}
+}]
+
+\section{Robustness to Random Seeds}
+We evaluate the robustness of GlobalPuzzle to stochastic genetic search using three random seeds (42, 43, and 2026) on GAP-3 and GAP-5. The pretrained Evaluation Network and Policy Network, evaluation samples, and all search hyperparameters are kept identical across runs. Only the random seed controlling population initialization, parent selection, connected group placement, and mutation is varied. Each experiment uses a population of 256 individuals and a maximum of 30 generations.
+
+Table \ref{tab:seed} reports perfect assembly accuracy (PA), absolute accuracy (AA), and structure reassembly accuracy (SRA) for each seed, together with their mean and standard deviation. These experiments assess the sensitivity of reconstruction performance to different stochastic search trajectories while isolating the influence of random seeds from network training and other experimental settings.
+
+\input{table/seed}
+
 \end{document}
